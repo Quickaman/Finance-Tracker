@@ -25,7 +25,3 @@ A Node.js-based Finance Tracker that manage,records and  sends daily expense sum
 
 ---
 
-## 🔧 Setup Instructions
-
-### 1. Clone the Repository
-
