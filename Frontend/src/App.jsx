@@ -1,54 +1,47 @@
 import { useEffect, useState } from "react";
-import { FaTrash, FaEdit, FaWindowClose } from "react-icons/fa";
-import { PieChart } from "@mui/x-charts/PieChart";
+import Sidebar from "./Sidebar";
+import { FaTrash, FaEdit } from "react-icons/fa";
+import { PieChart, Pie, Tooltip, Cell } from "recharts";
 import { publicRequest } from "./requestMethods";
 
-function App() {
+export default function App() {
+  const [expenses, setExpenses] = useState([]);
+  const [filteredExpenses, setFilteredExpenses] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [totalAmount, setTotalAmount] = useState(0);
+
   const [showAddExpense, setShowAddExpense] = useState(false);
-  const [showReport, setShowReport] = useState(false);
-  const [showEdit, setShowEdit] = useState(false);
   const [label, setLabel] = useState("");
   const [amount, setAmount] = useState(0);
   const [date, setDate] = useState("");
-  const [expenses, setExpenses] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filteredExpenses, setFilteredExpenses] = useState([]);
-  const [totalAmount, setTotalAmount] = useState(0);
-  const [updatedId, setUpdatedID] = useState("");
+
+  const [showEdit, setShowEdit] = useState(false);
+  const [updatedId, setUpdatedId] = useState("");
   const [updatedLabel, setUpdatedLabel] = useState("");
   const [updatedAmount, setUpdatedAmount] = useState("");
   const [updatedDate, setUpdatedDate] = useState("");
 
-  const handleAddExpense = () => {
-    setShowAddExpense(!showAddExpense);
-  };
+  const COLORS = ["#6366f1", "#10b981", "#f43f5e", "#f97316", "#3b82f6"];
 
-  const handleShowReport = () => {
-    setShowReport(!showReport);
-  };
-
-  const handleShowEdit = (id) => {
-    setShowEdit(true);
-    setUpdatedID(id);
-  };
-
-  const handleUpdateExpense = async () => {
-    if (updatedId) {
-      try {
-        await publicRequest.put(`/api/v1/expenses/${updatedId}`, {
-          value: parseFloat(updatedAmount),
-          label: updatedLabel,
-          date: updatedDate,
-        });
-        fetchExpenses();
-        setShowEdit(false);
-      } catch (error) {
-        console.log(error);
-      }
+  // Fetch expenses from backend
+  const fetchExpenses = async () => {
+    try {
+      const res = await publicRequest.get("/api/v1/expenses");
+      setExpenses(res.data);
+      setFilteredExpenses(res.data);
+      const total = res.data.reduce((acc, expense) => acc + expense.value, 0);
+      setTotalAmount(total);
+    } catch (error) {
+      console.log(error);
     }
   };
 
-  const handleExpense = async () => {
+  useEffect(() => {
+    fetchExpenses();
+  }, []);
+
+  // Add new expense
+  const handleAddExpense = async () => {
     try {
       await publicRequest.post("/api/v1/expenses", {
         label,
@@ -65,25 +58,7 @@ function App() {
     }
   };
 
-  const fetchExpenses = async () => {
-    try {
-      const res = await publicRequest.get("/api/v1/expenses");
-      setExpenses(res.data);
-      const filtered = res.data.filter((expense) =>
-        expense.label.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredExpenses(filtered);
-      const total = res.data.reduce((acc, expense) => acc + expense.value, 0);
-      setTotalAmount(total);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  useEffect(() => {
-    fetchExpenses();
-  }, []);
-
+  // Delete expense
   const handleDelete = async (id) => {
     try {
       await publicRequest.delete(`/api/v1/expenses/${id}`);
@@ -93,6 +68,34 @@ function App() {
     }
   };
 
+  // Open edit modal
+  const handleShowEdit = (id) => {
+    const exp = expenses.find(e => e._id === id);
+    if (exp) {
+      setUpdatedId(id);
+      setUpdatedLabel(exp.label);
+      setUpdatedAmount(exp.value);
+      setUpdatedDate(exp.date);
+      setShowEdit(true);
+    }
+  };
+
+  // Update expense
+  const handleUpdateExpense = async () => {
+    try {
+      await publicRequest.put(`/api/v1/expenses/${updatedId}`, {
+        label: updatedLabel,
+        date: updatedDate,
+        value: parseFloat(updatedAmount),
+      });
+      setShowEdit(false);
+      fetchExpenses();
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  // Search filter
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
     const filtered = expenses.filter((expense) =>
@@ -102,178 +105,173 @@ function App() {
   };
 
   return (
-    <div>
-      <div className="flex flex-col justify-center items-center mt-[3%] w-[80%] mx-auto">
-        <h1 className="text-2xl font-medium text-[#555]">Expense Tracker</h1>
+    <div className="flex min-h-screen">
+      <Sidebar />
 
-        <div className="relative flex items-center justify-between mt-5 w-full">
-          <div className="relative flex justify-between w-[300px]">
-            <button
-              className="bg-[#af8978] p-[10px] text-white cursor-pointer"
-              onClick={handleAddExpense}
-            >
-              Add Expense
-            </button>
-            <button
-              className="bg-blue-300 p-[10px] text-white cursor-pointer"
-              onClick={handleShowReport}
-            >
-              Expense Report
-            </button>
+      <main className="ml-64 p-10 bg-gray-50 flex-1">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-indigo-700">Dashboard</h1>
+          <input
+            type="text"
+            placeholder="Search expenses..."
+            value={searchTerm}
+            onChange={handleSearch}
+            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          <div className="bg-white p-6 rounded-xl shadow">
+            <h4 className="text-gray-500">Total Balance</h4>
+            <p className="text-2xl font-bold text-indigo-600">₹{totalAmount}</p>
           </div>
-
-          {showAddExpense && (
-            <div className="absolute z-[999] flex flex-col p-[10px] top-[20px] left-0 h-[500px] w-[500px] bg-white shadow-xl">
-              <FaWindowClose
-                className="self-end text-2xl text-red-500 cursor-pointer"
-                onClick={handleAddExpense}
-              />
-              <label className="mt-[10px] font-semibold text-[18px]">
-                Expense Name
-              </label>
-              <input
-                type="text"
-                placeholder="Snacks"
-                className="outline-none border-2 border-[#555] p-[10px]"
-                value={label}
-                onChange={(e) => setLabel(e.target.value)}
-              />
-              <label className="mt-[10px] font-semibold text-[18px]">
-                Expense Date
-              </label>
-              <input
-                type="date"
-                className="outline-none border-2 border-[#555] p-[10px]"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
-              <label className="mt-[10px] font-semibold text-[18px]">
-                Expense Amount
-              </label>
-              <input
-                type="number"
-                className="outline-none border-2 border-[#555] p-[10px]"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-              />
-
-              <button
-                className="bg-[#af8978] text-white p-[10px] my-[10px]"
-                onClick={handleExpense}
-              >
-                Add Expense
-              </button>
-            </div>
-          )}
-
-          {showReport && (
-            <div className="absolute z-[999] flex flex-col p-[10px] top-[20px] left-[100px] h-[500px] w-[500px] bg-white shadow-xl">
-              <FaWindowClose
-                className="self-end text-2xl text-red-500 cursor-pointer"
-                onClick={handleShowReport}
-              />
-              <PieChart
-                series={[
-                  {
-                    data: expenses,
-                    innerRadius: 30,
-                    outerRadius: 100,
-                    paddingAngle: 5,
-                    cornerRadius: 5,
-                    startAngle: -90,
-                    endAngle: 180,
-                    cx: 150,
-                    cy: 150,
-                  },
-                ]}
-              />
-              <div className="text-center mt-4 text-lg font-semibold">
-                Total Expenses: ₹{totalAmount}
-              </div>
-            </div>
-          )}
-
-          <div>
-            <input
-              type="text"
-              placeholder="Search"
-              className="p-[10px] w-[150px] border-2 border-[#444]"
-              value={searchTerm}
-              onChange={handleSearch}
-            />
+          <div className="bg-white p-6 rounded-xl shadow">
+            <h4 className="text-gray-500">Total Income</h4>
+            <p className="text-2xl font-bold text-green-500">₹50000</p>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow">
+            <h4 className="text-gray-500">Total Expenses</h4>
+            <p className="text-2xl font-bold text-red-500">₹{totalAmount}</p>
           </div>
         </div>
 
-        <div className="flex flex-col">
-          {filteredExpenses.map((item, index) => (
-            <div
-              className="flex justify-between items-center w-[80vw] h-[100px] bg-[#f3edeb] my-[20px] py-[10px] px-[20px]"
-              key={index}
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-xl font-semibold text-gray-700">Expense Overview</h2>
+          <button
+            onClick={() => setShowAddExpense(true)}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          >
+            Add Expense
+          </button>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow mb-10 flex justify-center">
+          <PieChart width={400} height={400}>
+            <Pie
+              data={expenses.map(e => ({ name: e.label, value: e.value }))}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              outerRadius={150}
             >
-              <h2 className="text-[#555] text-[18px] font-medium">
-                {item.label}
-              </h2>
-              <span className="text-[18px]">{item.date}</span>
-              <span className="text-[18px] font-medium">₹ {item.value}</span>
+              {expenses.map((_, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip />
+          </PieChart>
+        </div>
+
+        <div className="grid gap-4">
+          {filteredExpenses.map((item) => (
+            <div
+              key={item._id}
+              className="flex justify-between items-center bg-white p-4 rounded-xl shadow"
+            >
               <div>
-                <FaTrash
-                  className="text-red-500 mb-[5px] cursor-pointer"
-                  onClick={() => handleDelete(item._id)}
-                />
+                <h3 className="font-semibold text-gray-800">{item.label}</h3>
+                <p className="text-sm text-gray-500">{item.date}</p>
+              </div>
+              <span className="font-bold text-red-500">₹{item.value}</span>
+              <div className="flex gap-4">
                 <FaEdit
-                  className="text-[#555] mb-[5px] cursor-pointer"
+                  className="text-indigo-600 cursor-pointer"
                   onClick={() => handleShowEdit(item._id)}
+                />
+                <FaTrash
+                  className="text-red-500 cursor-pointer"
+                  onClick={() => handleDelete(item._id)}
                 />
               </div>
             </div>
           ))}
         </div>
 
-        {showEdit && (
-          <div className="absolute z-[999] flex flex-col p-[10px] top-[25%] right-0 h-[500px] w-[500px] bg-white shadow-xl">
-            <FaWindowClose
-              className="self-end text-2xl text-red-500 cursor-pointer"
-              onClick={() => setShowEdit(false)}
-            />
-            <label className="mt-[10px] font-semibold text-[18px]">
-              Expense Name
-            </label>
-            <input
-              type="text"
-              className="outline-none border-2 border-[#555] p-[10px]"
-              value={updatedLabel}
-              onChange={(e) => setUpdatedLabel(e.target.value)}
-            />
-            <label className="mt-[10px] font-semibold text-[18px]">
-              Expense Date
-            </label>
-            <input
-              type="date"
-              className="outline-none border-2 border-[#555] p-[10px]"
-              value={updatedDate}
-              onChange={(e) => setUpdatedDate(e.target.value)}
-            />
-            <label className="mt-[10px] font-semibold text-[18px]">
-              Expense Amount
-            </label>
-            <input
-              type="number"
-              className="outline-none border-2 border-[#555] p-[10px]"
-              value={updatedAmount}
-              onChange={(e) => setUpdatedAmount(e.target.value)}
-            />
-
-            <button
-              className="bg-[#af8978] text-white p-[10px] my-[10px]"
-              onClick={handleUpdateExpense}
-            >
-              Update Expense
-            </button>
+        {/* Add Expense Modal */}
+        {showAddExpense && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-8 rounded-xl w-full max-w-md">
+              <h2 className="text-xl font-semibold mb-4">Add New Expense</h2>
+              <input
+                type="text"
+                placeholder="Expense Name"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                className="w-full mb-4 p-3 border border-gray-300 rounded-md"
+              />
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full mb-4 p-3 border border-gray-300 rounded-md"
+              />
+              <input
+                type="number"
+                placeholder="Amount"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-full mb-4 p-3 border border-gray-300 rounded-md"
+              />
+              <div className="flex justify-end gap-4">
+                <button
+                  onClick={() => setShowAddExpense(false)}
+                  className="px-4 py-2 bg-gray-300 rounded-md"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddExpense}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
           </div>
         )}
-      </div>
+
+        {/* Edit Expense Modal */}
+        {showEdit && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-8 rounded-xl w-full max-w-md">
+              <h2 className="text-xl font-semibold mb-4">Edit Expense</h2>
+              <input
+                type="text"
+                value={updatedLabel}
+                onChange={(e) => setUpdatedLabel(e.target.value)}
+                className="w-full mb-4 p-3 border border-gray-300 rounded-md"
+              />
+              <input
+                type="date"
+                value={updatedDate}
+                onChange={(e) => setUpdatedDate(e.target.value)}
+                className="w-full mb-4 p-3 border border-gray-300 rounded-md"
+              />
+              <input
+                type="number"
+                value={updatedAmount}
+                onChange={(e) => setUpdatedAmount(e.target.value)}
+                className="w-full mb-4 p-3 border border-gray-300 rounded-md"
+              />
+              <div className="flex justify-end gap-4">
+                <button
+                  onClick={() => setShowEdit(false)}
+                  className="px-4 py-2 bg-gray-300 rounded-md"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateExpense}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                >
+                  Update
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
-
-export default App;
