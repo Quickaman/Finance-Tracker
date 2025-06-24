@@ -1,6 +1,6 @@
 # 💸 Finance Tracker - Daily Expense Emailer
 
-A simple Node.js-based Finance Tracker that sends daily expense summaries to your email using Gmail and a MongoDB backend. Scheduled with `node-cron`.
+A Node.js-based Finance Tracker that manage,records and  sends daily expense summaries to your email using Gmail and a MongoDB backend. Scheduled with `node-cron`.
 
 ---
 
