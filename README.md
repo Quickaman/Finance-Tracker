@@ -48,8 +48,6 @@ Finance-Tracker/
 ├── Frontend/
 ├── Backend/
 ├── BGServices/
-├── .github/
-│   └── workflows/
 
 ## 🔐 Environment Variables
 
@@ -82,8 +80,8 @@ npm run dev
 - End-to-end full-stack ownership
 - Secure authentication and authorization
 - Real-time analytics and data visualization
-- Cost-effective automation without paid infrastructure
 - Production-ready deployment
+- Auto email sender is not deployed yet
 
 ## 🔗 Repository
 
