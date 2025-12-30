@@ -14,7 +14,7 @@ export default function App() {
         {/* Public */}
         <Route path="/login" element={<Login />} />
 
-        {/* Protected Layout */}
+        {/* Protected */}
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout />}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
