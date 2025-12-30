@@ -1,32 +1,20 @@
-const nodemailer = require("nodemailer");
-const dotenv = require("dotenv");
-dotenv.config();
+import nodemailer from "nodemailer";
 
-function createTransporter(config) {
-  return nodemailer.createTransport(config);
-}
-
-const configurations = {
-  service: "gmail",
+const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  requireTLS: true,
+  port: 465,
+  secure: true,
   auth: {
-    user: process.env.EMAIL,
-    pass: process.env.PASSWORD,
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
-};
+});
 
-const sendMail = async (messageoption) => {
-  try {
-    const transporter = createTransporter(configurations);
-    await transporter.verify();
-    const info = await transporter.sendMail(messageoption);
-    console.log("Email sent:", info.response);
-  } catch (error) {
-    console.error("Error sending email:", error.message);
-  }
+export const sendMail = async (to, subject, html) => {
+  return transporter.sendMail({
+    from: `"Finance Tracker" <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    html,
+  });
 };
-
-module.exports = sendMail;

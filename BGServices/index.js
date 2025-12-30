@@ -1,30 +1,14 @@
-const express = require("express");
-const cron = require("node-cron");
-const app = express();
-const dotenv = require("dotenv");
-const mongoose = require("mongoose");
-const { expenseEmail } = require("./EmailService/Expense");
+import "dotenv/config";
 
-dotenv.config();
+import mongoose from "mongoose";
+import cron from "node-cron";
+import sendWeeklyExpenseReport from "./jobs/weeklyExpenseReport.js";
 
 mongoose
-  .connect(process.env.DB_CONNECTION)
-  .then(() => {
-    console.log("DB connection is successfull");
-  })
-  .catch((e) => {
-    console.log(e);
-  });
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("BGServices connected to MongoDB"))
+  .catch(console.error);
 
-  const run = () => {
-    cron.schedule("0 9 * * *", () => {
-      expenseEmail();
-    });
-  };
-
-  run();
-const PORT = process.env.PORT;
-
-app.listen(PORT, () => {
-  console.log(`Backgroundservice is running on port ${PORT}`);
+cron.schedule("0 9 * * 1", async () => {
+  await sendWeeklyExpenseReport();
 });
