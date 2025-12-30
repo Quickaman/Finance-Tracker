@@ -1,151 +1,128 @@
-import { useEffect, useState } from "react";
-import { userRequest } from "../services/requestMethods";
+import { useContext, useEffect, useState } from "react";
+import { AuthContext } from "../context/AuthContext";
+import { publicRequest } from "../services/requestMethods";
+import { useNavigate } from "react-router-dom";
 
-export default function Settings() {
-  const [oldPassword, setOldPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+export default function Login() {
+  const { token, setToken } = useContext(AuthContext);
+  const navigate = useNavigate();
 
-  const [currency, setCurrency] = useState(
-    localStorage.getItem("currency") || "₹"
-  );
-  const [dateFormat, setDateFormat] = useState(
-    localStorage.getItem("dateFormat") || "YYYY-MM-DD"
-  );
+  const [mode, setMode] = useState("Login");
 
-  useEffect(() => {
-    localStorage.setItem("currency", currency);
-    localStorage.setItem("dateFormat", dateFormat);
-  }, [currency, dateFormat]);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    window.location.href = "/login";
+  const onSubmitHandler = async (e) => {
+    e.preventDefault();
+
+    try {
+      if (mode === "Sign Up") {
+        const { data } = await publicRequest.post("/auth/register", {
+          name,
+          email,
+          password,
+        });
+        setToken(data.token);
+      } else {
+        const { data } = await publicRequest.post("/auth/login", {
+          email,
+          password,
+        });
+        setToken(data.token);
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || "Authentication failed");
+    }
   };
 
+  useEffect(() => {
+    if (token) navigate("/");
+  }, [token, navigate]);
+
   return (
-    <div className="space-y-10 max-w-5xl">
-      {/* HEADER */}
-      <div>
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-zinc-500 mt-1">
-          Manage preferences, security, and account options
-        </p>
-      </div>
-
-      {/* PREFERENCES */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <h2 className="text-xl font-semibold mb-6">Preferences</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Currency */}
-          <div>
-            <label className="block text-sm text-zinc-500 mb-2">
-              Currency
-            </label>
-            <select
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none"
-            >
-              <option value="₹">₹ INR</option>
-              <option value="$">$ USD</option>
-              <option value="€">€ EUR</option>
-              <option value="£">£ GBP</option>
-            </select>
-          </div>
-
-          {/* Date Format */}
-          <div>
-            <label className="block text-sm text-zinc-500 mb-2">
-              Date Format
-            </label>
-            <select
-              value={dateFormat}
-              onChange={(e) => setDateFormat(e.target.value)}
-              className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none"
-            >
-              <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-              <option value="DD-MM-YYYY">DD-MM-YYYY</option>
-              <option value="MM-DD-YYYY">MM-DD-YYYY</option>
-            </select>
-          </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-white to-indigo-200">
+      <form
+        onSubmit={onSubmitHandler}
+        className="bg-white w-[380px] rounded-2xl p-8 shadow-xl space-y-6"
+      >
+        {/* HEADER */}
+        <div className="text-center">
+          <h2 className="text-3xl font-bold text-indigo-600">
+            {mode === "Sign Up" ? "Create Account" : "Welcome Back"}
+          </h2>
+          <p className="text-sm text-zinc-500 mt-1">
+            {mode === "Sign Up"
+              ? "Track your expenses smarter"
+              : "Login to manage your finances"}
+          </p>
         </div>
-      </div>
 
-      {/* ACCOUNT SECURITY */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <h2 className="text-xl font-semibold mb-1">Account Security</h2>
-        <p className="text-sm text-zinc-500 mb-6">
-          Update your password and manage sessions
-        </p>
+        {/* FORM */}
+        <div className="space-y-4">
+          {mode === "Sign Up" && (
+            <input
+              type="text"
+              placeholder="Full Name"
+              required
+              className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          )}
 
-        {/* CHANGE PASSWORD */}
-        <div className="max-w-md space-y-4">
           <input
-            type="password"
-            placeholder="Current Password"
+            type="email"
+            placeholder="Email address"
+            required
             className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none"
-            value={oldPassword}
-            onChange={(e) => setOldPassword(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
 
           <input
             type="password"
-            placeholder="New Password"
+            placeholder="Password"
+            required
             className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
           />
-
-          <button
-            disabled={loading}
-            onClick={async () => {
-              try {
-                setLoading(true);
-                await userRequest.put("/auth/update-password", {
-                  oldPassword,
-                  newPassword,
-                });
-
-                alert("Password updated successfully");
-                setOldPassword("");
-                setNewPassword("");
-              } catch (err) {
-                alert(
-                  err.response?.data?.message ||
-                    "Failed to update password"
-                );
-              } finally {
-                setLoading(false);
-              }
-            }}
-            className="w-full bg-indigo-600 text-white py-3 rounded-xl hover:bg-indigo-700 transition disabled:opacity-50"
-          >
-            {loading ? "Updating..." : "Update Password"}
-          </button>
         </div>
 
-        {/* LOGOUT */}
-        <div className="border-t mt-8 pt-6">
-          <button
-            onClick={handleLogout}
-            className="bg-rose-500 text-white px-6 py-3 rounded-xl hover:bg-rose-600 transition"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
+        {/* ACTION */}
+        <button
+          type="submit"
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-medium transition"
+        >
+          {mode === "Sign Up" ? "Create Account" : "Login"}
+        </button>
 
-      {/* DANGER ZONE */}
-      <div className="bg-rose-50 border border-rose-200 rounded-2xl p-6">
-        <h2 className="text-lg font-semibold text-rose-600 mb-1">
-          Danger Zone
-        </h2>
-        <p className="text-sm text-rose-500">
-          Future options: delete all expenses, close account, reset data.
+        {/* SWITCH MODE */}
+        <p className="text-sm text-center text-zinc-500">
+          {mode === "Sign Up" ? (
+            <>
+              Already have an account?{" "}
+              <span
+                onClick={() => setMode("Login")}
+                className="text-indigo-600 font-medium cursor-pointer hover:underline"
+              >
+                Login
+              </span>
+            </>
+          ) : (
+            <>
+              New here?{" "}
+              <span
+                onClick={() => setMode("Sign Up")}
+                className="text-indigo-600 font-medium cursor-pointer hover:underline"
+              >
+                Create account
+              </span>
+            </>
+          )}
         </p>
-      </div>
+      </form>
     </div>
   );
 }
