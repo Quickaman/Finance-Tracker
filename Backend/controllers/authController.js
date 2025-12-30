@@ -5,16 +5,42 @@ const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
 export const registerUser = async (req, res) => {
-  const { name, email, password } = req.body;
+  try {
+    const { name, email, password } = req.body;
 
-  const userExists = await User.findOne({ email });
-  if (userExists)
-    return res.status(400).json({ message: "User already exists" });
+    // Explicit check (best practice)
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({
+        message: "User already exists with this email",
+      });
+    }
 
-  const user = await User.create({ name, email, password });
+    const user = await User.create({
+      name,
+      email,
+      password,
+    });
 
-  res.json({ token: generateToken(user._id) });
+    res.status(201).json({
+      token: generateToken(user._id),
+    });
+  } catch (error) {
+    console.error("REGISTER ERROR:", error);
+
+    // Mongo duplicate key fallback (safety net)
+    if (error.code === 11000) {
+      return res.status(400).json({
+        message: "Email already registered",
+      });
+    }
+
+    res.status(500).json({
+      message: "Registration failed",
+    });
+  }
 };
+
 
 export const loginUser = async (req, res) => {
   const { email, password } = req.body;
