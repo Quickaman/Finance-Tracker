@@ -1,22 +1,20 @@
+const sendMail = require("../sendMail");
+
 const expenseEmail = async () => {
   try {
-    const expenses = await Expense.find({});
-    const totalExpense = expenses.reduce(
-      (acc, expense) => acc + expense.value,
-      0
-    );
+    const recipientEmail = "xyz@gmail.com";
 
-    const today = new Date().toLocaleDateString("en-IN");
-
-    const messageoption = {
+    await sendMail({
       from: process.env.EMAIL,
-      to: process.env.ADMIN_EMAIL,
-      subject: "Daily Expense Summary",
-      text: `As of ${today}, your total expense is ₹${totalExpense.toLocaleString("en-IN")}.`,
-    };
+      to: recipientEmail,
+      subject: "Your Daily Expense Summary",
+      text: "Hello! Here is your expense summary for today.",
+    });
 
-    await sendMail(messageoption);
+    console.log("Expense email sent successfully.");
   } catch (error) {
-    console.error("Error in expenseEmail:", error.message);
+    console.error("Failed to send expense email:", error.message);
   }
 };
+
+module.exports = { expenseEmail };
