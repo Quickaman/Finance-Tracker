@@ -12,6 +12,7 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from "recharts";
+import { formatCurrency } from "../utils/formatCurrency";
 
 const COLORS = ["#6366f1", "#10b981", "#f97316", "#ef4444", "#3b82f6"];
 
@@ -36,8 +37,7 @@ export default function Reports() {
 
   /* Total */
   const total = useMemo(
-    () =>
-      monthlyExpenses.reduce((sum, e) => sum + Number(e.value), 0),
+    () => monthlyExpenses.reduce((sum, e) => sum + Number(e.value), 0),
     [monthlyExpenses]
   );
 
@@ -66,37 +66,62 @@ export default function Reports() {
   }, [monthlyExpenses]);
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6">Reports & Analytics</h1>
+    <div className="space-y-10">
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <h1 className="text-3xl font-bold">Reports & Analytics</h1>
 
-      {/* FILTER */}
-      <div className="flex items-center gap-4 mb-8">
-        <label className="font-medium">Select Month:</label>
-        <input
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          className="border p-2 rounded"
-        />
+        <div className="flex items-center gap-3">
+          <label className="text-sm text-zinc-500">Month</label>
+          <input
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            className="rounded-xl border px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+          />
+        </div>
       </div>
 
       {/* SUMMARY */}
-      <div className="bg-white p-6 rounded-xl shadow mb-8">
-        <p className="text-gray-500">Total Expenses</p>
-        <p className="text-3xl font-bold text-red-500">₹{total}</p>
-        <p className="text-sm text-gray-500 mt-1">
-          {monthlyExpenses.length} transactions
-        </p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm">
+          <p className="text-sm text-zinc-500">Total Spend</p>
+          <p className="text-3xl font-bold text-rose-500 mt-1">
+            {formatCurrency(total)}
+          </p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-sm">
+          <p className="text-sm text-zinc-500">Transactions</p>
+          <p className="text-3xl font-bold mt-1">
+            {monthlyExpenses.length}
+          </p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-sm">
+          <p className="text-sm text-zinc-500">Average / Day</p>
+          <p className="text-3xl font-bold text-indigo-600 mt-1">
+            {formatCurrency(
+              monthlyExpenses.length
+                ? Math.round(total / monthlyExpenses.length)
+                : 0
+            )}
+          </p>
+        </div>
       </div>
 
       {/* CHARTS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* CATEGORY PIE */}
-        <div className="bg-white p-6 rounded-xl shadow">
-          <h2 className="font-semibold mb-4">Category Breakdown</h2>
+        <div className="bg-white rounded-2xl p-6 shadow-sm">
+          <h2 className="font-semibold text-lg mb-4">
+            Category Breakdown
+          </h2>
 
           {categoryData.length === 0 ? (
-            <p className="text-gray-500">No data</p>
+            <p className="text-zinc-400 text-center py-20">
+              No data for this month
+            </p>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -108,7 +133,10 @@ export default function Reports() {
                   label
                 >
                   {categoryData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    <Cell
+                      key={i}
+                      fill={COLORS[i % COLORS.length]}
+                    />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -118,11 +146,15 @@ export default function Reports() {
         </div>
 
         {/* DAILY BAR */}
-        <div className="bg-white p-6 rounded-xl shadow">
-          <h2 className="font-semibold mb-4">Daily Expenses</h2>
+        <div className="bg-white rounded-2xl p-6 shadow-sm">
+          <h2 className="font-semibold text-lg mb-4">
+            Daily Spending Trend
+          </h2>
 
           {dailyData.length === 0 ? (
-            <p className="text-gray-500">No data</p>
+            <p className="text-zinc-400 text-center py-20">
+              No data for this month
+            </p>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={dailyData}>
@@ -138,21 +170,29 @@ export default function Reports() {
       </div>
 
       {/* TOP CATEGORIES */}
-      <div className="bg-white p-6 rounded-xl shadow">
-        <h2 className="font-semibold mb-4">Top Spending Categories</h2>
+      <div className="bg-white rounded-2xl p-6 shadow-sm">
+        <h2 className="font-semibold text-lg mb-4">
+          Top Spending Categories
+        </h2>
 
-        {categoryData
-          .sort((a, b) => b.value - a.value)
-          .slice(0, 5)
-          .map((c) => (
-            <div
-              key={c.name}
-              className="flex justify-between border-b py-2"
-            >
-              <span>{c.name}</span>
-              <span className="font-bold text-red-500">₹{c.value}</span>
-            </div>
-          ))}
+        {categoryData.length === 0 ? (
+          <p className="text-zinc-400">No data available</p>
+        ) : (
+          categoryData
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 5)
+            .map((c) => (
+              <div
+                key={c.name}
+                className="flex justify-between py-2 border-b last:border-none"
+              >
+                <span className="font-medium">{c.name}</span>
+                <span className="font-semibold text-rose-500">
+                  {formatCurrency(c.value)}
+                </span>
+              </div>
+            ))
+        )}
       </div>
     </div>
   );
