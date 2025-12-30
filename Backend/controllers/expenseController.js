@@ -1,37 +1,45 @@
 import Expense from "../models/Expense.js";
 
-/* GET all expenses for logged-in user */
 export const getExpenses = async (req, res) => {
   try {
-    const expenses = await Expense.find({ user: req.user.id });
+    const expenses = await Expense.find({ user: req.user }).sort({
+      createdAt: -1,
+    });
+
     res.json(expenses);
   } catch (error) {
+    console.error("GET EXPENSES ERROR:", error);
     res.status(500).json({ message: "Failed to fetch expenses" });
   }
 };
 
-/* ADD new expense */
 export const addExpense = async (req, res) => {
   try {
+    const { label, value, date } = req.body;
+
+    if (!label || !value || !date) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
     const expense = await Expense.create({
-      label: req.body.label,
-      value: req.body.value,
-      date: req.body.date,
-      user: req.user.id,
+      label,
+      value,
+      date,
+      user: req.user,
     });
 
     res.status(201).json(expense);
   } catch (error) {
+    console.error("ADD EXPENSE ERROR:", error);
     res.status(500).json({ message: "Failed to add expense" });
   }
 };
 
-/* DELETE expense (only owner) */
 export const deleteExpense = async (req, res) => {
   try {
     const expense = await Expense.findOneAndDelete({
       _id: req.params.id,
-      user: req.user.id,
+      user: req.user,
     });
 
     if (!expense) {
@@ -40,15 +48,15 @@ export const deleteExpense = async (req, res) => {
 
     res.json({ message: "Expense deleted" });
   } catch (error) {
+    console.error("DELETE EXPENSE ERROR:", error);
     res.status(500).json({ message: "Failed to delete expense" });
   }
 };
 
-/* UPDATE expense (only owner) */
 export const updateExpense = async (req, res) => {
   try {
     const expense = await Expense.findOneAndUpdate(
-      { _id: req.params.id, user: req.user.id },
+      { _id: req.params.id, user: req.user },
       req.body,
       { new: true }
     );
@@ -59,6 +67,7 @@ export const updateExpense = async (req, res) => {
 
     res.json(expense);
   } catch (error) {
+    console.error("UPDATE EXPENSE ERROR:", error);
     res.status(500).json({ message: "Failed to update expense" });
   }
 };
